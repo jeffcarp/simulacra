@@ -8,15 +8,15 @@
 
 var processNodes = require('./process_nodes')
 
-module.exports = defineSetters
+module.exports = defineProperties
 
 /**
- * Define setters. This function does most of the heavy lifting.
+ * Define getters & setters. This function does most of the heavy lifting.
  *
  * @param {Object} obj
  * @param {Object} def
  */
-function defineSetters (obj, def) {
+function defineProperties (obj, def) {
   // Using the closure here to store private object.
   var store = {}
 
@@ -91,7 +91,7 @@ function defineSetters (obj, def) {
 
         if (definition) {
           node = processNodes(branch.node.cloneNode(true), definition)
-          defineSetters(value, definition)
+          defineProperties(value, definition)
           activeNodes[i] = parentNode.insertBefore(node, branch.marker)
           continue
         }
@@ -141,7 +141,7 @@ function findNodes (node, definition) {
 'use strict'
 
 var processNodes = require('./process_nodes')
-var defineSetters = require('./define_setters')
+var defineProperties = require('./define_properties')
 
 module.exports = simulacra
 
@@ -233,7 +233,7 @@ function bind (obj, def) {
     throw new TypeError('Top-level binding must be an object.')
 
   node = processNodes(def.node.cloneNode(true), def.definition)
-  defineSetters(obj, def.definition)
+  defineProperties(obj, def.definition)
 
   return node
 }
@@ -253,13 +253,13 @@ function replaceChecked (node, value) {
   node.checked = value
 }
 
-},{"./define_setters":1,"./process_nodes":4}],4:[function(require,module,exports){
+},{"./define_properties":1,"./process_nodes":4}],4:[function(require,module,exports){
 'use strict'
 
 var findNodes = require('./find_nodes')
-var emptyString = ''
 
 module.exports = processNodes
+
 
 /**
  * Internal function to remove bound nodes and replace them with markers.
@@ -278,7 +278,7 @@ function processNodes (node, def) {
     branch = def[key]
     mirrorNode = map.get(branch.node)
     parent = mirrorNode.parentNode
-    marker = document.createTextNode(emptyString)
+    marker = document.createTextNode('')
     branch.marker = parent.insertBefore(marker, mirrorNode)
     parent.removeChild(mirrorNode)
   }
