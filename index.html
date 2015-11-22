@@ -10,7 +10,7 @@ https://github.com/0x8890/simulacra
     <span class="hljs-tag">&lt;<span class="hljs-title">h4</span> <span class="hljs-attribute">class</span>=<span class="hljs-value">"vendor"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">h4</span>&gt;</span>
   <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
 <span class="hljs-tag">&lt;/<span class="hljs-title">template</span>&gt;</span>
-</code></pre><p>In the above template, there are no iteration mechanisms, because Simulacra.js will automatically clone DOM elements based on the data. Here&#39;s some sample data:</p><pre><code class="lang-js"><span class="hljs-title">var</span> <span class="hljs-typedef"><span class="hljs-keyword">data</span> = <span class="hljs-container">{
+</code></pre><p>Using the <code>&lt;template&gt;</code> tag is optional but optimal since its contents are not rendered by default, but any DOM element will suffice. In the above template, there are no iteration mechanisms, because Simulacra.js will automatically clone DOM elements based on the data. Here&#39;s some sample data:</p><pre><code class="lang-js"><span class="hljs-title">var</span> <span class="hljs-typedef"><span class="hljs-keyword">data</span> = <span class="hljs-container">{
   <span class="hljs-title">name</span>: '<span class="hljs-type">Pumpkin</span> <span class="hljs-type">Spice</span> <span class="hljs-type">Latte</span>',
   <span class="hljs-title">details</span>: {
     <span class="hljs-title">size</span>: [ '<span class="hljs-type">Tall</span>', '<span class="hljs-type">Grande</span>', '<span class="hljs-type">Venti</span>' ],
