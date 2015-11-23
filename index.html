@@ -32,7 +32,7 @@ https://github.com/0x8890/simulacra
   })
 })
 
-<span class="hljs-built_in">document</span>.appendChild(bind(data, bindings))
+<span class="hljs-built_in">document</span>.body.appendChild(bind(data, bindings))
 </code></pre><p>The DOM will update if any of the bound keys are assigned.</p><p>All mount functions are &quot;offline&quot; operations, they mutate elements which exist only in memory. By default, the value will be assigned to the element&#39;s <code>textContent</code> property (or <code>value</code> or <code>checked</code> for inputs), additional functions for mounting and unmounting may be used for arbitrary element manipulation.</p><p>The mount &amp; unmount functions are passed in as the second and third arguments respectively, and have the signature (<code>node</code>, <code>value</code>, <code>oldValue</code>, <code>index</code>). For example, to manipulate a node before mounting it, one may do this:</p><pre><code class="lang-js">bind($('.name'), function (<span class="hljs-keyword">node</span><span class="hljs-identifier"></span><span class="hljs-title">, value</span>) {
   <span class="hljs-keyword">node</span>.<span class="hljs-identifier"></span><span class="hljs-title">textContent</span> = 'Hi ' + value + '!'
 })
