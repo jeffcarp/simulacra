@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.0.6
+ * Version 0.0.7
  * https://github.com/0x8890/simulacra
  */
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
@@ -85,16 +85,15 @@ function defineProperties (obj, def) {
         if (mount) {
           node = branch.node.cloneNode(true)
           node = mount(node, value, previousValue, i) || node
-          activeNodes[i] = parentNode.insertBefore(node, branch.marker)
-          continue
         }
 
-        if (definition) {
+        else if (definition) {
           node = processNodes(branch.node.cloneNode(true), definition)
           defineProperties(value, definition)
-          activeNodes[i] = parentNode.insertBefore(node, branch.marker)
-          continue
         }
+
+        activeNodes[i] = parentNode.insertBefore(node,
+          activeNodes[i + 1] || branch.marker)
       }
 
       // Reset length to current values.
