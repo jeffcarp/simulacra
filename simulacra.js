@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.0.7
+ * Version 0.1.0
  * https://github.com/0x8890/simulacra
  */
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
@@ -9,6 +9,7 @@
 var processNodes = require('./process_nodes')
 
 module.exports = defineProperties
+
 
 /**
  * Define getters & setters. This function does most of the heavy lifting.
@@ -34,6 +35,7 @@ function defineProperties (obj, def) {
     var mount = branch.mount
     var unmount = branch.unmount
     var definition = branch.definition
+    var parentNode = branch.marker.parentNode
 
     // Keeping state in this closure.
     var activeNodes = []
@@ -51,53 +53,179 @@ function defineProperties (obj, def) {
     }
 
     function setter (x) {
-      var values = Array.isArray(x) ? x : [ x ]
-      var i, j, isEmpty, value, previousValue,
-        node, activeNode, parentNode
+      var i, j
 
       store[key] = x
 
+      if (Array.isArray(x)) {
+        // Assign custom mutator methods on the array instance.
+        if (!x.__hasMutators) {
+          x.__hasMutators = true
+
+          // These mutators preserve length.
+          x.reverse = reverse
+          x.sort = sort
+          x.copyWithin = copyWithin
+          x.fill = fill
+
+          // These mutators may alter length.
+          x.pop = pop
+          x.push = push
+          x.shift = shift
+          x.unshift = unshift
+          x.splice = splice
+
+          // Handle array index assignment.
+          for (i = 0, j = x.length; i < j; i++) defineIndex(x, i)
+        }
+      }
+      else x = [ x ]
+
       // Handle rendering to the DOM.
-      j = Math.max(previousValues.length, values.length)
+      j = Math.max(previousValues.length, x.length)
 
-      for (i = 0; i < j; i++) {
-        value = values[i]
-        activeNode = activeNodes[i]
-        previousValue = previousValues[i]
-        isEmpty = value === null || value === void 0
-        parentNode = branch.marker.parentNode
+      for (i = 0; i < j; i++) checkValue(x, i)
 
-        if (isEmpty) {
-          delete previousValues[i]
-          delete activeNodes[i]
-          if (unmount) unmount(activeNode, value, previousValue, i)
-          if (activeNode) parentNode.removeChild(activeNode)
-          continue
-        }
+      // Reset length to current values, implicitly deleting indices from
+      // `previousValues` and `activeNodes` and allowing for garbage
+      // collection.
+      previousValues.length = activeNodes.length = x.length
 
-        if (previousValue === value) continue
+      return x
+    }
 
-        previousValues[i] = value
+    function checkValue (array, i) {
+      var value = array[i]
+      var activeNode = activeNodes[i]
+      var previousValue = previousValues[i]
 
+      if (previousValue === value) return
+
+      removeNode(value, previousValue, i)
+      addNode(value, previousValue, i)
+    }
+
+    function defineIndex (array, i) {
+      var value = array[i]
+
+      Object.defineProperty(array, i, {
+        get: function () { return value },
+        set: function (x) { value = x; checkValue(array, i) },
+        enumerable: true, configurable: true
+      })
+    }
+
+    function removeNode (value, previousValue, i) {
+      var activeNode = activeNodes[i]
+
+      if (activeNode) {
         if (unmount) unmount(activeNode, value, previousValue, i)
-        if (activeNode) parentNode.removeChild(activeNode)
+        parentNode.removeChild(activeNode)
+      }
+    }
 
-        if (mount) {
-          node = branch.node.cloneNode(true)
-          node = mount(node, value, previousValue, i) || node
-        }
+    function addNode (value, previousValue, i) {
+      var node
 
-        else if (definition) {
-          node = processNodes(branch.node.cloneNode(true), definition)
-          defineProperties(value, definition)
-        }
+      previousValues[i] = value
 
-        activeNodes[i] = parentNode.insertBefore(node,
-          activeNodes[i + 1] || branch.marker)
+      if (value === null || value === void 0) return
+
+      if (mount) {
+        node = branch.node.cloneNode(true)
+        node = mount(node, value, previousValue, i) || node
       }
 
-      // Reset length to current values.
-      previousValues.length = activeNodes.length = values.length
+      else if (definition) {
+        node = processNodes(branch.node.cloneNode(true), definition)
+        defineProperties(value, definition)
+      }
+
+      activeNodes[i] = parentNode.insertBefore(node,
+        activeNodes[i + 1] || branch.marker)
+    }
+
+
+    // =======================================
+    // Below are array mutator methods.
+    // They have to exist within this closure.
+    // =======================================
+
+    function reverse () {
+      return setter(Array.prototype.reverse.call(this))
+    }
+
+    function sort (fn) {
+      return setter(Array.prototype.sort.call(this, fn))
+    }
+
+    function fill (a, b, c) {
+      return setter(Array.prototype.fill.call(this, a, b, c))
+    }
+
+    function copyWithin (a, b, c) {
+      return setter(Array.prototype.copyWithin.call(this, a, b, c))
+    }
+
+    function pop () {
+      var i = this.length - 1
+      var previousValue = previousValues[i]
+
+      Array.prototype.pop.call(this)
+      removeNode(null, previousValue, i)
+      previousValues.length = activeNodes.length = this.length
+    }
+
+    function push () {
+      var i = this.length, j
+
+      Array.prototype.push.apply(this, arguments)
+      for (j = i + arguments.length; i < j; i++) {
+        addNode(this[i], null, i)
+        defineIndex(this, i)
+      }
+    }
+
+    function shift () {
+      removeNode(null, previousValues[0], 0)
+
+      Array.prototype.shift.call(previousValues)
+      Array.prototype.shift.call(activeNodes)
+      Array.prototype.shift.call(this)
+    }
+
+    function unshift () {
+      var i = this.length, j
+
+      Array.prototype.unshift.apply(previousValues, arguments)
+      Array.prototype.unshift.apply(activeNodes, Array(arguments.length))
+      Array.prototype.unshift.apply(this, arguments)
+
+      for (j = arguments.length; j--;) addNode(arguments[j], null, j)
+      for (j = i + arguments.length; i < j; i++) defineIndex(this, i)
+    }
+
+    function splice (start, count) {
+      var args = Array.prototype.slice.call(arguments, 2)
+      var i, j, k = args.length - count
+
+      for (i = start, j = start + count; i < j; i++)
+        removeNode(null, previousValues[i], i)
+
+      Array.prototype.splice.apply(previousValues, arguments)
+      Array.prototype.splice.apply(activeNodes,
+        [ start, count ].concat(Array(args.length)))
+      Array.prototype.splice.apply(this, arguments)
+
+      for (i = start + args.length - 1, j = start; i >= j; i--)
+        addNode(args[i - start], null, i)
+
+      if (k < 0)
+        previousValues.length = activeNodes.length = this.length
+
+      else if (k > 0)
+        for (i = this.length - k, j = this.length; i < j; i++)
+          defineIndex(this, i)
     }
   }
 }
@@ -196,14 +324,12 @@ function define (node, def, unmount) {
     }
   }
 
-  else if (def === void 0) {
-    if (node.nodeName === 'INPUT' || node.nodeName === 'SELECT') {
+  else if (def === void 0)
+    if (node.nodeName === 'INPUT' || node.nodeName === 'SELECT')
       if (node.type === 'checkbox' || node.type === 'radio')
         obj.mount = replaceChecked
       else obj.mount = replaceValue
-    }
     else obj.mount = replaceText
-  }
 
   else throw new TypeError('Second argument must be either ' +
     'a function or an object.')
