@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.1.0
+ * Version 0.1.1
  * https://github.com/0x8890/simulacra
  */
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
@@ -35,7 +35,6 @@ function defineProperties (obj, def) {
     var mount = branch.mount
     var unmount = branch.unmount
     var definition = branch.definition
-    var parentNode = branch.marker.parentNode
 
     // Keeping state in this closure.
     var activeNodes = []
@@ -57,29 +56,28 @@ function defineProperties (obj, def) {
 
       store[key] = x
 
-      if (Array.isArray(x)) {
-        // Assign custom mutator methods on the array instance.
-        if (!x.__hasMutators) {
-          x.__hasMutators = true
+      if (!Array.isArray(x)) x = [ x ]
 
-          // These mutators preserve length.
-          x.reverse = reverse
-          x.sort = sort
-          x.copyWithin = copyWithin
-          x.fill = fill
+      // Assign custom mutator methods on the array instance.
+      if (!x.__hasMutators) {
+        x.__hasMutators = true
 
-          // These mutators may alter length.
-          x.pop = pop
-          x.push = push
-          x.shift = shift
-          x.unshift = unshift
-          x.splice = splice
+        // These mutators preserve length.
+        x.reverse = reverse
+        x.sort = sort
+        x.copyWithin = copyWithin
+        x.fill = fill
 
-          // Handle array index assignment.
-          for (i = 0, j = x.length; i < j; i++) defineIndex(x, i)
-        }
+        // These mutators may alter length.
+        x.pop = pop
+        x.push = push
+        x.shift = shift
+        x.unshift = unshift
+        x.splice = splice
+
+        // Handle array index assignment.
+        for (i = 0, j = x.length; i < j; i++) defineIndex(x, i)
       }
-      else x = [ x ]
 
       // Handle rendering to the DOM.
       j = Math.max(previousValues.length, x.length)
@@ -91,12 +89,11 @@ function defineProperties (obj, def) {
       // collection.
       previousValues.length = activeNodes.length = x.length
 
-      return x
+      return store[key]
     }
 
     function checkValue (array, i) {
       var value = array[i]
-      var activeNode = activeNodes[i]
       var previousValue = previousValues[i]
 
       if (previousValue === value) return
@@ -116,6 +113,7 @@ function defineProperties (obj, def) {
     }
 
     function removeNode (value, previousValue, i) {
+      var parentNode = branch.marker.parentNode
       var activeNode = activeNodes[i]
 
       if (activeNode) {
@@ -125,6 +123,7 @@ function defineProperties (obj, def) {
     }
 
     function addNode (value, previousValue, i) {
+      var parentNode = branch.marker.parentNode
       var node
 
       previousValues[i] = value
