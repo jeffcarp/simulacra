@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.1.2
+ * Version 0.1.3
  * Copyright (c) 2015 0x8890 <0x8890@airmail.cc>
  * MIT License
  * https://github.com/0x8890/simulacra
@@ -126,7 +126,7 @@ function defineProperties (obj, def) {
 
     function addNode (value, previousValue, i) {
       var parentNode = branch.marker.parentNode
-      var node
+      var j, k, node, nextNode
 
       previousValues[i] = value
 
@@ -142,8 +142,15 @@ function defineProperties (obj, def) {
         defineProperties(value, definition)
       }
 
-      activeNodes[i] = parentNode.insertBefore(node,
-        activeNodes[i + 1] || branch.marker)
+      // Find the next node.
+      for (j = i + 1, k = activeNodes.length; j < k; j++)
+        if (activeNodes[j]) {
+          nextNode = activeNodes[j]
+          break
+        }
+
+      activeNodes[i] = parentNode.insertBefore(
+        node, nextNode || branch.marker)
     }
 
 
