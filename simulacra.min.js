@@ -1,7 +1,6 @@
 /*!
  * Simulacra.js
  * Version 0.1.3
- * Copyright (c) 2015 0x8890 <0x8890@airmail.cc>
  * MIT License
  * https://github.com/0x8890/simulacra
  */
