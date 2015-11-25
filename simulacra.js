@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.1.1
+ * Version 0.1.2
  * https://github.com/0x8890/simulacra
  */
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
@@ -169,20 +169,24 @@ function defineProperties (obj, def) {
     function pop () {
       var i = this.length - 1
       var previousValue = previousValues[i]
+      var value = Array.prototype.pop.call(this)
 
-      Array.prototype.pop.call(this)
       removeNode(null, previousValue, i)
       previousValues.length = activeNodes.length = this.length
+
+      return value
     }
 
     function push () {
       var i = this.length, j
+      var value = Array.prototype.push.apply(this, arguments)
 
-      Array.prototype.push.apply(this, arguments)
       for (j = i + arguments.length; i < j; i++) {
         addNode(this[i], null, i)
         defineIndex(this, i)
       }
+
+      return value
     }
 
     function shift () {
@@ -190,23 +194,25 @@ function defineProperties (obj, def) {
 
       Array.prototype.shift.call(previousValues)
       Array.prototype.shift.call(activeNodes)
-      Array.prototype.shift.call(this)
+      return Array.prototype.shift.call(this)
     }
 
     function unshift () {
-      var i = this.length, j
+      var i = this.length, j, value
 
       Array.prototype.unshift.apply(previousValues, arguments)
       Array.prototype.unshift.apply(activeNodes, Array(arguments.length))
-      Array.prototype.unshift.apply(this, arguments)
+      value = Array.prototype.unshift.apply(this, arguments)
 
       for (j = arguments.length; j--;) addNode(arguments[j], null, j)
       for (j = i + arguments.length; i < j; i++) defineIndex(this, i)
+
+      return value
     }
 
     function splice (start, count) {
       var args = Array.prototype.slice.call(arguments, 2)
-      var i, j, k = args.length - count
+      var i, j, k = args.length - count, value
 
       for (i = start, j = start + count; i < j; i++)
         removeNode(null, previousValues[i], i)
@@ -214,7 +220,7 @@ function defineProperties (obj, def) {
       Array.prototype.splice.apply(previousValues, arguments)
       Array.prototype.splice.apply(activeNodes,
         [ start, count ].concat(Array(args.length)))
-      Array.prototype.splice.apply(this, arguments)
+      value = Array.prototype.splice.apply(this, arguments)
 
       for (i = start + args.length - 1, j = start; i >= j; i--)
         addNode(args[i - start], null, i)
@@ -225,6 +231,8 @@ function defineProperties (obj, def) {
       else if (k > 0)
         for (i = this.length - k, j = this.length; i < j; i++)
           defineIndex(this, i)
+
+      return value
     }
   }
 }
