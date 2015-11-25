@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.1.3
+ * Version 0.1.4
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -120,7 +120,9 @@ function defineProperties (obj, def) {
       if (activeNode) {
         if (unmount) unmount(activeNode, value, previousValue, i)
         parentNode.removeChild(activeNode)
+        delete activeNodes[i]
       }
+      delete previousValues[i]
     }
 
     function addNode (value, previousValue, i) {
