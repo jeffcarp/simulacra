@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.2.1
+ * Version 0.2.2
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -58,7 +58,8 @@ function defineProperties (obj, def, parentNode) {
 
       // Special case for binding same node as parent.
       if (branch.isBoundToParent) {
-        mount(parentNode, x, store[key])
+        if (mount) mount(parentNode, x, store[key])
+        else if (definition) defineProperties(x, definition, parentNode)
         store[key] = x
         return
       }
