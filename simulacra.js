@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.1.5
+ * Version 0.2.1
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -17,12 +17,13 @@ module.exports = defineProperties
  *
  * @param {Object} obj
  * @param {Object} def
+ * @param {Node} parentNode
  */
-function defineProperties (obj, def) {
+function defineProperties (obj, def, parentNode) {
   // Using the closure here to store private object.
   var store = {}
 
-  var properties = Object.keys(obj)
+  var properties = Object.keys(def)
   var i, j, property
 
   for (i = 0, j = properties.length; i < j; i++) {
@@ -55,12 +56,19 @@ function defineProperties (obj, def) {
     function setter (x) {
       var i, j
 
+      // Special case for binding same node as parent.
+      if (branch.isBoundToParent) {
+        mount(parentNode, x, store[key])
+        store[key] = x
+        return
+      }
+
       store[key] = x
 
       if (!Array.isArray(x)) x = [ x ]
 
       // Assign custom mutator methods on the array instance.
-      if (!x.__hasMutators) {
+      else if (!x.__hasMutators) {
         x.__hasMutators = true
 
         // These mutators preserve length.
@@ -81,9 +89,8 @@ function defineProperties (obj, def) {
       }
 
       // Handle rendering to the DOM.
-      j = Math.max(previousValues.length, x.length)
-
-      for (i = 0; i < j; i++) checkValue(x, i)
+      for (i = 0, j = Math.max(previousValues.length, x.length); i < j; i++)
+        checkValue(x, i)
 
       // Reset length to current values, implicitly deleting indices from
       // `previousValues` and `activeNodes` and allowing for garbage
@@ -114,20 +121,18 @@ function defineProperties (obj, def) {
     }
 
     function removeNode (value, previousValue, i) {
-      var parentNode = branch.marker.parentNode
       var activeNode = activeNodes[i]
 
       delete previousValues[i]
 
       if (activeNode) {
         if (unmount) unmount(activeNode, value, previousValue, i)
-        parentNode.removeChild(activeNode)
+        branch.marker.parentNode.removeChild(activeNode)
         delete activeNodes[i]
       }
     }
 
     function addNode (value, previousValue, i) {
-      var parentNode = branch.marker.parentNode
       var j, k, node, nextNode
 
       if (value === null || value === void 0) {
@@ -144,8 +149,8 @@ function defineProperties (obj, def) {
       }
 
       else if (definition) {
-        node = processNodes(branch.node.cloneNode(true), definition)
-        defineProperties(value, definition)
+        node = processNodes(branch.node.cloneNode(true), definition, i)
+        defineProperties(value, definition, node)
       }
 
       // Find the next node.
@@ -155,7 +160,7 @@ function defineProperties (obj, def) {
           break
         }
 
-      activeNodes[i] = parentNode.insertBefore(
+      activeNodes[i] = branch.marker.parentNode.insertBefore(
         node, nextNode || branch.marker)
     }
 
@@ -337,12 +342,20 @@ function define (node, def, unmount) {
 
     for (i = 0, keys = Object.keys(def), j = keys.length; i < j; i++) {
       value = def[keys[i]].node
+
+      // Special case for binding to parent node.
+      if (node === value) {
+        def[keys[i]].isBoundToParent = true
+        continue
+      }
+
       if (!node.contains(value))
-        throw new Error('The bound DOM Node must be ' +
-          'contained in its parent.')
+        throw new Error('The bound DOM Node must be either ' +
+          'contained in or equal to its parent binding.')
+
       if (!seen.get(value)) seen.set(value, true)
-      else throw new Error('Can not bind multiple keys to the same ' +
-        'DOM Node. Collision found on "' + keys[i] + '".')
+      else throw new Error('Can not bind multiple keys to the same child ' +
+        'DOM Node. Collision found on key "' + keys[i] + '".')
     }
   }
 
@@ -380,7 +393,7 @@ function bind (obj, def) {
     throw new TypeError('Top-level binding must be an object.')
 
   node = processNodes(def.node.cloneNode(true), def.definition)
-  defineProperties(obj, def.definition)
+  defineProperties(obj, def.definition, node)
 
   return node
 }
@@ -423,6 +436,7 @@ function processNodes (node, def) {
   for (i = 0, j = keys.length; i < j; i++) {
     key = keys[i]
     branch = def[key]
+    if (branch.isBoundToParent) continue
     mirrorNode = map.get(branch.node)
     parent = mirrorNode.parentNode
     marker = document.createTextNode('')
