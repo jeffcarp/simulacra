@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.1.4
+ * Version 0.1.5
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -117,21 +117,26 @@ function defineProperties (obj, def) {
       var parentNode = branch.marker.parentNode
       var activeNode = activeNodes[i]
 
+      delete previousValues[i]
+
       if (activeNode) {
         if (unmount) unmount(activeNode, value, previousValue, i)
         parentNode.removeChild(activeNode)
         delete activeNodes[i]
       }
-      delete previousValues[i]
     }
 
     function addNode (value, previousValue, i) {
       var parentNode = branch.marker.parentNode
       var j, k, node, nextNode
 
-      previousValues[i] = value
+      if (value === null || value === void 0) {
+        delete previousValues[i]
+        delete activeNodes[i]
+        return
+      }
 
-      if (value === null || value === void 0) return
+      previousValues[i] = value
 
       if (mount) {
         node = branch.node.cloneNode(true)
@@ -302,7 +307,7 @@ function simulacra (a, b, c) {
   if (typeof a === 'object') return bind(a, b)
 
   throw new TypeError('First argument must be either ' +
-    'an DOM Node or an Object.')
+    'a DOM Node or an Object.')
 }
 
 
