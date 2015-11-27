@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.2.3
+ * Version 0.2.4
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -414,7 +414,7 @@ replaceChecked.__isDefault = true
 
 function noop (key) {
   return function () {
-    console.warn('No-op mutator function on key "' + key + '".')
+    console.warn('Undefined mutator function for key "' + key + '".')
   }
 }
 
@@ -444,8 +444,10 @@ function processNodes (node, def) {
     if (branch.isBoundToParent) continue
     mirrorNode = map.get(branch.node)
     parent = mirrorNode.parentNode
-    marker = document.createTextNode('')
+    marker = document.createComment(' end "' + key + '" ')
     branch.marker = parent.insertBefore(marker, mirrorNode)
+    parent.insertBefore(
+      document.createComment(' begin "' + key + '" '), marker)
     parent.removeChild(mirrorNode)
   }
 
