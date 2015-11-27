@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.2.2
+ * Version 0.2.3
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -331,7 +331,7 @@ function define (node, def, unmount) {
   // Although WeakSet would work here, WeakMap has better browser support.
   var seen = new WeakMap()
 
-  var i, j, keys, value
+  var i, j, keys, branch, boundNode
 
   if (typeof def === 'function') {
     obj.mount = def
@@ -342,19 +342,22 @@ function define (node, def, unmount) {
     obj.definition = def
 
     for (i = 0, keys = Object.keys(def), j = keys.length; i < j; i++) {
-      value = def[keys[i]].node
+      branch = def[keys[i]]
+      boundNode = branch.node
 
       // Special case for binding to parent node.
-      if (node === value) {
-        def[keys[i]].isBoundToParent = true
+      if (node === boundNode) {
+        branch.isBoundToParent = true
+        if (branch.mount && branch.mount.__isDefault)
+          branch.mount = noop(keys[i])
         continue
       }
 
-      if (!node.contains(value))
+      if (!node.contains(boundNode))
         throw new Error('The bound DOM Node must be either ' +
           'contained in or equal to its parent binding.')
 
-      if (!seen.get(value)) seen.set(value, true)
+      if (!seen.get(boundNode)) seen.set(boundNode, true)
       else throw new Error('Can not bind multiple keys to the same child ' +
         'DOM Node. Collision found on key "' + keys[i] + '".')
     }
@@ -400,18 +403,19 @@ function bind (obj, def) {
 }
 
 
-function replaceText (node, value) {
-  node.textContent = value
-}
+// Default DOM mutation functions.
+function replaceText (node, value) { node.textContent = value }
+function replaceValue (node, value) { node.value = value }
+function replaceChecked (node, value) { node.checked = value }
 
+replaceText.__isDefault = true
+replaceValue.__isDefault = true
+replaceChecked.__isDefault = true
 
-function replaceValue (node, value) {
-  node.value = value
-}
-
-
-function replaceChecked (node, value) {
-  node.checked = value
+function noop (key) {
+  return function () {
+    console.warn('No-op mutator function on key "' + key + '".')
+  }
 }
 
 },{"./define_properties":1,"./process_nodes":4}],4:[function(require,module,exports){
