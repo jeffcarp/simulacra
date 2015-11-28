@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.3.0
+ * Version 0.3.1
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -57,7 +57,7 @@ function defineProperties (obj, def, parentNode) {
         if (mutator) mutator(parentNode, x, store[key])
         else if (definition) defineProperties(x, definition, parentNode)
         store[key] = x
-        return
+        return null
       }
 
       store[key] = x
@@ -131,15 +131,14 @@ function defineProperties (obj, def, parentNode) {
     function addNode (value, previousValue, i) {
       var j, k, node, nextNode, activeNode = activeNodes[i]
 
-      if (value === null || value === void 0)
-        return removeNode(value, previousValue, i)
+      if (value == null) return removeNode(value, previousValue, i)
 
       previousValues[i] = value
 
       if (mutator) {
         if (activeNode) {
           mutator(activeNode, value, previousValue, i)
-          return
+          return null
         }
 
         node = branch.node.cloneNode(true)
@@ -408,7 +407,8 @@ replaceChecked.__isDefault = true
 
 function noop (key) {
   return function () {
-    console.warn('Undefined mutator function for key "' + key + '".')
+    console.warn( // eslint-disable-line
+      'Undefined mutator function for key "' + key + '".')
   }
 }
 
@@ -438,10 +438,8 @@ function processNodes (node, def) {
     if (branch.isBoundToParent) continue
     mirrorNode = map.get(branch.node)
     parent = mirrorNode.parentNode
-    marker = document.createComment(' end "' + key + '" ')
+    marker = document.createTextNode('')
     branch.marker = parent.insertBefore(marker, mirrorNode)
-    parent.insertBefore(
-      document.createComment(' begin "' + key + '" '), marker)
     parent.removeChild(mirrorNode)
   }
 
