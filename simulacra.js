@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.2.4
+ * Version 0.3.0
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -24,18 +24,14 @@ function defineProperties (obj, def, parentNode) {
   var store = {}
 
   var properties = Object.keys(def)
-  var i, j, property
+  var i, j
 
-  for (i = 0, j = properties.length; i < j; i++) {
-    property = properties[i]
-    store[property] = obj[property]
-    define(property)
-  }
+  for (i = 0, j = properties.length; i < j; i++) define(properties[i])
 
   function define (key) {
+    var initialValue = obj[key]
     var branch = def[key]
-    var mount = branch.mount
-    var unmount = branch.unmount
+    var mutator = branch.mutator
     var definition = branch.definition
 
     // Keeping state in this closure.
@@ -47,7 +43,7 @@ function defineProperties (obj, def, parentNode) {
     })
 
     // For initialization, call this once.
-    setter(store[key])
+    setter(initialValue)
 
     function getter () {
       return store[key]
@@ -58,7 +54,7 @@ function defineProperties (obj, def, parentNode) {
 
       // Special case for binding same node as parent.
       if (branch.isBoundToParent) {
-        if (mount) mount(parentNode, x, store[key])
+        if (mutator) mutator(parentNode, x, store[key])
         else if (definition) defineProperties(x, definition, parentNode)
         store[key] = x
         return
@@ -107,7 +103,6 @@ function defineProperties (obj, def, parentNode) {
 
       if (previousValue === value) return
 
-      removeNode(value, previousValue, i)
       addNode(value, previousValue, i)
     }
 
@@ -127,26 +122,28 @@ function defineProperties (obj, def, parentNode) {
       delete previousValues[i]
 
       if (activeNode) {
-        if (unmount) unmount(activeNode, value, previousValue, i)
+        mutator(activeNode, value, previousValue, i)
         branch.marker.parentNode.removeChild(activeNode)
         delete activeNodes[i]
       }
     }
 
     function addNode (value, previousValue, i) {
-      var j, k, node, nextNode
+      var j, k, node, nextNode, activeNode = activeNodes[i]
 
-      if (value === null || value === void 0) {
-        delete previousValues[i]
-        delete activeNodes[i]
-        return
-      }
+      if (value === null || value === void 0)
+        return removeNode(value, previousValue, i)
 
       previousValues[i] = value
 
-      if (mount) {
+      if (mutator) {
+        if (activeNode) {
+          mutator(activeNode, value, previousValue, i)
+          return
+        }
+
         node = branch.node.cloneNode(true)
-        node = mount(node, value, previousValue, i) || node
+        mutator(node, value, previousValue, i)
       }
 
       else if (definition) {
@@ -308,8 +305,8 @@ module.exports = simulacra
  * @param {Function|Object}
  * @param {Function}
  */
-function simulacra (a, b, c) {
-  if (a instanceof Node) return define(a, b, c)
+function simulacra (a, b) {
+  if (a instanceof Node) return define(a, b)
   if (typeof a === 'object') return bind(a, b)
 
   throw new TypeError('First argument must be either ' +
@@ -322,9 +319,8 @@ function simulacra (a, b, c) {
  *
  * @param {String|Node}
  * @param {Function|Object}
- * @param {Function}
  */
-function define (node, def, unmount) {
+function define (node, def) {
   // Memoize the selected node.
   var obj = { node: node }
 
@@ -333,10 +329,8 @@ function define (node, def, unmount) {
 
   var i, j, keys, branch, boundNode
 
-  if (typeof def === 'function') {
-    obj.mount = def
-    if (typeof unmount === 'function') obj.unmount = unmount
-  }
+  if (typeof def === 'function')
+    obj.mutator = def
 
   else if (typeof def === 'object') {
     obj.definition = def
@@ -348,8 +342,8 @@ function define (node, def, unmount) {
       // Special case for binding to parent node.
       if (node === boundNode) {
         branch.isBoundToParent = true
-        if (branch.mount && branch.mount.__isDefault)
-          branch.mount = noop(keys[i])
+        if (branch.mutator && branch.mutator.__isDefault)
+          branch.mutator = noop(keys[i])
         continue
       }
 
@@ -366,9 +360,9 @@ function define (node, def, unmount) {
   else if (def === void 0)
     if (node.nodeName === 'INPUT' || node.nodeName === 'SELECT')
       if (node.type === 'checkbox' || node.type === 'radio')
-        obj.mount = replaceChecked
-      else obj.mount = replaceValue
-    else obj.mount = replaceText
+        obj.mutator = replaceChecked
+      else obj.mutator = replaceValue
+    else obj.mutator = replaceText
 
   else throw new TypeError('Second argument must be either ' +
     'a function or an object.')
