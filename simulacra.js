@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.3.1
+ * Version 0.3.2
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -119,10 +119,13 @@ function defineProperties (obj, def, parentNode) {
     function removeNode (value, previousValue, i) {
       var activeNode = activeNodes[i]
 
+      // Cast previous value to null if undefined.
+      if (previousValue === void 0) previousValue = null
+
       delete previousValues[i]
 
       if (activeNode) {
-        mutator(activeNode, value, previousValue, i)
+        mutator(activeNode, null, previousValue, i)
         branch.marker.parentNode.removeChild(activeNode)
         delete activeNodes[i]
       }
@@ -131,7 +134,11 @@ function defineProperties (obj, def, parentNode) {
     function addNode (value, previousValue, i) {
       var j, k, node, nextNode, activeNode = activeNodes[i]
 
-      if (value == null) return removeNode(value, previousValue, i)
+      // Cast previous value to null if undefined.
+      if (previousValue === void 0) previousValue = null
+
+      // If value is undefined or null, just remove it.
+      if (value == null) return removeNode(null, previousValue, i)
 
       previousValues[i] = value
 
