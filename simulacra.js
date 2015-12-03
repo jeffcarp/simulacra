@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.3.2
+ * Version 0.3.3
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -53,7 +53,7 @@ function defineProperties (obj, def, parentNode) {
       var i, j
 
       // Special case for binding same node as parent.
-      if (branch.isBoundToParent) {
+      if (branch.__isBoundToParent) {
         if (mutator) mutator(parentNode, x, store[key])
         else if (definition) defineProperties(x, definition, parentNode)
         store[key] = x
@@ -247,7 +247,7 @@ function defineProperties (obj, def, parentNode) {
       value = Array.prototype.splice.apply(this, arguments)
 
       for (i = start + args.length - 1, j = start; i >= j; i--)
-        addNode(args[i - start], null, i)
+        addNode(args[(i - start) | 0], null, i)
 
       if (k < 0)
         previousValues.length = activeNodes.length = this.length
@@ -309,7 +309,6 @@ module.exports = simulacra
  *
  * @param {Node|Object}
  * @param {Function|Object}
- * @param {Function}
  */
 function simulacra (a, b) {
   if (a instanceof Node) return define(a, b)
@@ -347,7 +346,7 @@ function define (node, def) {
 
       // Special case for binding to parent node.
       if (node === boundNode) {
-        branch.isBoundToParent = true
+        branch.__isBoundToParent = true
         if (branch.mutator && branch.mutator.__isDefault)
           branch.mutator = noop(keys[i])
         continue
@@ -442,7 +441,7 @@ function processNodes (node, def) {
   for (i = 0, j = keys.length; i < j; i++) {
     key = keys[i]
     branch = def[key]
-    if (branch.isBoundToParent) continue
+    if (branch.__isBoundToParent) continue
     mirrorNode = map.get(branch.node)
     parent = mirrorNode.parentNode
     marker = document.createTextNode('')
