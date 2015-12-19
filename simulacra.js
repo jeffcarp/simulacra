@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.3.3
+ * Version 0.4.0
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -20,12 +20,16 @@ module.exports = defineProperties
  * @param {Node} parentNode
  */
 function defineProperties (obj, def, parentNode) {
+  var store, properties, i, j
+
+  if (typeof obj !== 'object')
+    throw TypeError(
+      'Invalid type for "' + obj + '", object expected.')
+
   // Using the closure here to store private object.
-  var store = {}
+  store = {}
 
-  var properties = Object.keys(def)
-  var i, j
-
+  properties = Object.keys(def)
   for (i = 0, j = properties.length; i < j; i++) define(properties[i])
 
   function define (key) {
@@ -125,7 +129,7 @@ function defineProperties (obj, def, parentNode) {
       delete previousValues[i]
 
       if (activeNode) {
-        mutator(activeNode, null, previousValue, i)
+        if (mutator) mutator(activeNode, null, previousValue, i)
         branch.marker.parentNode.removeChild(activeNode)
         delete activeNodes[i]
       }
@@ -153,6 +157,7 @@ function defineProperties (obj, def, parentNode) {
       }
 
       else if (definition) {
+        if (activeNode) removeNode(value, previousValue, i)
         node = processNodes(branch.node.cloneNode(true), definition, i)
         defineProperties(value, definition, node)
       }
