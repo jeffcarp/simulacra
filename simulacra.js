@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.5.0
+ * Version 0.5.1
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -280,8 +280,8 @@ module.exports = findNodes
  * @return {WeakMap}
  */
 function findNodes (node, definition) {
-  var document = this.document || window.document
-  var NodeFilter = this.NodeFilter || window.NodeFilter
+  var document = this ? this.document : window.document
+  var NodeFilter = this ? this.NodeFilter : window.NodeFilter
   var treeWalker = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT)
   var keys = Object.keys(definition)
   var map = new WeakMap()
@@ -317,7 +317,7 @@ module.exports = simulacra
  * @param {Function|Object}
  */
 function simulacra (a, b) {
-  var Node = this.Node || window.Node
+  var Node = this ? this.Node : window.Node
 
   if (a instanceof Node) return define.call(this, a, b)
   if (typeof a === 'object') return bind.call(this, a, b)
@@ -368,7 +368,7 @@ function define (node, def) {
             'contained in or equal to its parent binding.')
       }
       else {
-        document = this.document || window.document
+        document = this ? this.document : window.document
         walker = document.createTreeWalker(node)
         while (walker.nextNode())
           if (walker.currentNode === boundNode) {
@@ -410,7 +410,7 @@ function define (node, def) {
  * @return {Node}
  */
 function bind (obj, def) {
-  var Node = this.Node || window.Node, node
+  var Node = this ? this.Node : window.Node, node
 
   if (Array.isArray(obj))
     throw new TypeError('First argument must be a singular object.')
@@ -460,7 +460,7 @@ module.exports = processNodes
  * @return {Node}
  */
 function processNodes (node, def) {
-  var document = this.document || window.document
+  var document = this ? this.document : window.document
   var keys = Object.keys(def)
   var map = findNodes.call(this, node, def)
   var i, j, branch, key, mirrorNode, marker, parent
