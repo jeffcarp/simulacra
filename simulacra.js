@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.4.0
+ * Version 0.5.0
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -280,8 +280,9 @@ module.exports = findNodes
  * @return {WeakMap}
  */
 function findNodes (node, definition) {
-  var treeWalker = document.createTreeWalker(
-    node, NodeFilter.SHOW_ELEMENT)
+  var document = this.document || window.document
+  var NodeFilter = this.NodeFilter || window.NodeFilter
+  var treeWalker = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT)
   var keys = Object.keys(definition)
   var map = new WeakMap()
   var nodes = []
@@ -316,8 +317,10 @@ module.exports = simulacra
  * @param {Function|Object}
  */
 function simulacra (a, b) {
-  if (a instanceof Node) return define(a, b)
-  if (typeof a === 'object') return bind(a, b)
+  var Node = this.Node || window.Node
+
+  if (a instanceof Node) return define.call(this, a, b)
+  if (typeof a === 'object') return bind.call(this, a, b)
 
   throw new TypeError('First argument must be either ' +
     'a DOM Node or an Object.')
@@ -337,7 +340,7 @@ function define (node, def) {
   // Although WeakSet would work here, WeakMap has better browser support.
   var seen = new WeakMap()
 
-  var i, j, keys, branch, boundNode
+  var i, j, keys, branch, boundNode, document, walker, match
 
   if (typeof def === 'function')
     obj.mutator = def
@@ -357,9 +360,27 @@ function define (node, def) {
         continue
       }
 
-      if (!node.contains(boundNode))
-        throw new Error('The bound DOM Node must be either ' +
-          'contained in or equal to its parent binding.')
+      // Node.contains is part of the DOM living standard, and might not be
+      // implemented. In this case, TreeWalker may also work.
+      if (node.contains) {
+        if (!node.contains(boundNode))
+          throw new Error('The bound DOM Node must be either ' +
+            'contained in or equal to its parent binding.')
+      }
+      else {
+        document = this.document || window.document
+        walker = document.createTreeWalker(node)
+        while (walker.nextNode())
+          if (walker.currentNode === boundNode) {
+            match = true
+            break
+          }
+
+        if (!match)
+          throw new Error('The bound DOM Node must be either ' +
+            'contained in or equal to its parent binding. Also, the Node ' +
+            '"contains" method is non-existent.')
+      }
 
       if (!seen.get(boundNode)) seen.set(boundNode, true)
       else throw new Error('Can not bind multiple keys to the same child ' +
@@ -389,7 +410,7 @@ function define (node, def) {
  * @return {Node}
  */
 function bind (obj, def) {
-  var node
+  var Node = this.Node || window.Node, node
 
   if (Array.isArray(obj))
     throw new TypeError('First argument must be a singular object.')
@@ -400,7 +421,7 @@ function bind (obj, def) {
   if (typeof def.definition !== 'object')
     throw new TypeError('Top-level binding must be an object.')
 
-  node = processNodes(def.node.cloneNode(true), def.definition)
+  node = processNodes.call(this, def.node.cloneNode(true), def.definition)
   defineProperties(obj, def.definition, node)
 
   return node
@@ -439,8 +460,9 @@ module.exports = processNodes
  * @return {Node}
  */
 function processNodes (node, def) {
+  var document = this.document || window.document
   var keys = Object.keys(def)
-  var map = findNodes(node, def)
+  var map = findNodes.call(this, node, def)
   var i, j, branch, key, mirrorNode, marker, parent
 
   for (i = 0, j = keys.length; i < j; i++) {
