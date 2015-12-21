@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.5.1
+ * Version 0.5.2
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -15,11 +15,12 @@ module.exports = defineProperties
 /**
  * Define getters & setters. This function does most of the heavy lifting.
  *
+ * @param {*}
  * @param {Object} obj
  * @param {Object} def
  * @param {Node} parentNode
  */
-function defineProperties (obj, def, parentNode) {
+function defineProperties (scope, obj, def, parentNode) {
   var store, properties, i, j
 
   if (typeof obj !== 'object')
@@ -59,7 +60,7 @@ function defineProperties (obj, def, parentNode) {
       // Special case for binding same node as parent.
       if (branch.__isBoundToParent) {
         if (mutator) mutator(parentNode, x, store[key])
-        else if (definition) defineProperties(x, definition, parentNode)
+        else if (definition) defineProperties(scope, x, definition, parentNode)
         store[key] = x
         return null
       }
@@ -158,8 +159,8 @@ function defineProperties (obj, def, parentNode) {
 
       else if (definition) {
         if (activeNode) removeNode(value, previousValue, i)
-        node = processNodes(branch.node.cloneNode(true), definition, i)
-        defineProperties(value, definition, node)
+        node = processNodes(scope, branch.node.cloneNode(true), definition, i)
+        defineProperties(scope, value, definition, node)
       }
 
       // Find the next node.
@@ -275,13 +276,14 @@ module.exports = findNodes
 /**
  * Find matching DOM nodes on cloned nodes.
  *
+ * @param {*}
  * @param {Node} node
  * @param {Object} definition
  * @return {WeakMap}
  */
-function findNodes (node, definition) {
-  var document = this ? this.document : window.document
-  var NodeFilter = this ? this.NodeFilter : window.NodeFilter
+function findNodes (scope, node, definition) {
+  var document = scope ? scope.document : window.document
+  var NodeFilter = scope ? scope.NodeFilter : window.NodeFilter
   var treeWalker = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT)
   var keys = Object.keys(definition)
   var map = new WeakMap()
@@ -317,10 +319,11 @@ module.exports = simulacra
  * @param {Function|Object}
  */
 function simulacra (a, b) {
-  var Node = this ? this.Node : window.Node
+  var scope = this
+  var Node = scope ? scope.Node : window.Node
 
-  if (a instanceof Node) return define.call(this, a, b)
-  if (typeof a === 'object') return bind.call(this, a, b)
+  if (a instanceof Node) return define(scope, a, b)
+  if (typeof a === 'object') return bind(scope, a, b)
 
   throw new TypeError('First argument must be either ' +
     'a DOM Node or an Object.')
@@ -330,10 +333,11 @@ function simulacra (a, b) {
 /**
  * Define a binding.
  *
+ * @param {*}
  * @param {String|Node}
  * @param {Function|Object}
  */
-function define (node, def) {
+function define (scope, node, def) {
   // Memoize the selected node.
   var obj = { node: node }
 
@@ -368,7 +372,7 @@ function define (node, def) {
             'contained in or equal to its parent binding.')
       }
       else {
-        document = this ? this.document : window.document
+        document = scope ? scope.document : window.document
         walker = document.createTreeWalker(node)
         while (walker.nextNode())
           if (walker.currentNode === boundNode) {
@@ -405,12 +409,13 @@ function define (node, def) {
 /**
  * Bind an object to a Node.
  *
+ * @param {*}
  * @param {Object}
  * @param {Object}
  * @return {Node}
  */
-function bind (obj, def) {
-  var Node = this ? this.Node : window.Node, node
+function bind (scope, obj, def) {
+  var Node = scope ? scope.Node : window.Node, node
 
   if (Array.isArray(obj))
     throw new TypeError('First argument must be a singular object.')
@@ -421,8 +426,8 @@ function bind (obj, def) {
   if (typeof def.definition !== 'object')
     throw new TypeError('Top-level binding must be an object.')
 
-  node = processNodes.call(this, def.node.cloneNode(true), def.definition)
-  defineProperties(obj, def.definition, node)
+  node = processNodes(scope, def.node.cloneNode(true), def.definition)
+  defineProperties(scope, obj, def.definition, node)
 
   return node
 }
@@ -455,14 +460,15 @@ module.exports = processNodes
 /**
  * Internal function to remove bound nodes and replace them with markers.
  *
+ * @param {*}
  * @param {Node}
  * @param {Object}
  * @return {Node}
  */
-function processNodes (node, def) {
-  var document = this ? this.document : window.document
+function processNodes (scope, node, def) {
+  var document = scope ? scope.document : window.document
   var keys = Object.keys(def)
-  var map = findNodes.call(this, node, def)
+  var map = findNodes(scope, node, def)
   var i, j, branch, key, mirrorNode, marker, parent
 
   for (i = 0, j = keys.length; i < j; i++) {
