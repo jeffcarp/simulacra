@@ -1,6 +1,6 @@
 /*!
  * Simulacra.js
- * Version 0.5.2
+ * Version 0.5.4
  * MIT License
  * https://github.com/0x8890/simulacra
  */
@@ -24,8 +24,8 @@ function defineProperties (scope, obj, def, parentNode) {
   var store, properties, i, j
 
   if (typeof obj !== 'object')
-    throw TypeError(
-      'Invalid type for "' + obj + '", object expected.')
+    throw new TypeError(
+      'Invalid type of value "' + obj + '", object expected.')
 
   // Using the closure here to store private object.
   store = {}
@@ -60,7 +60,11 @@ function defineProperties (scope, obj, def, parentNode) {
       // Special case for binding same node as parent.
       if (branch.__isBoundToParent) {
         if (mutator) mutator(parentNode, x, store[key])
-        else if (definition) defineProperties(scope, x, definition, parentNode)
+
+        // Need to qualify this check for non-empty value.
+        else if (definition && x != null)
+          defineProperties(scope, x, definition, parentNode)
+
         store[key] = x
         return null
       }
@@ -344,7 +348,7 @@ function define (scope, node, def) {
   // Although WeakSet would work here, WeakMap has better browser support.
   var seen = new WeakMap()
 
-  var i, j, keys, branch, boundNode, document, walker, match
+  var i, j, keys, branch, boundNode
 
   if (typeof def === 'function')
     obj.mutator = def
@@ -364,27 +368,9 @@ function define (scope, node, def) {
         continue
       }
 
-      // Node.contains is part of the DOM living standard, and might not be
-      // implemented. In this case, TreeWalker may also work.
-      if (node.contains) {
-        if (!node.contains(boundNode))
-          throw new Error('The bound DOM Node must be either ' +
-            'contained in or equal to its parent binding.')
-      }
-      else {
-        document = scope ? scope.document : window.document
-        walker = document.createTreeWalker(node)
-        while (walker.nextNode())
-          if (walker.currentNode === boundNode) {
-            match = true
-            break
-          }
-
-        if (!match)
-          throw new Error('The bound DOM Node must be either ' +
-            'contained in or equal to its parent binding. Also, the Node ' +
-            '"contains" method is non-existent.')
-      }
+      if (!node.contains(boundNode))
+        throw new Error('The bound DOM Node must be either ' +
+          'contained in or equal to its parent binding.')
 
       if (!seen.get(boundNode)) seen.set(boundNode, true)
       else throw new Error('Can not bind multiple keys to the same child ' +
